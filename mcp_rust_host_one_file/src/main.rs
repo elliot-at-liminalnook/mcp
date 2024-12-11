@@ -1223,14 +1223,18 @@ Use that format above!
 async fn main() -> Result<()> {
     // Initialize logging with env_logger
     env_logger::init();
+    info!("Starting mcp_rust_host_one_file application");
 
+    info!("Initializing MCPHost");
     let host = MCPHost::new().await?;
+    info!("MCPHost initialized successfully");
 
     // Get command line arguments
     let args: Vec<String> = std::env::args().collect();
     
     // If arguments are provided, handle them first
     if args.len() > 1 {
+        info!("Processing command line arguments: {:?}", &args[1..]);
         match args[1].as_str() {
             "load_config" if args.len() == 3 => {
                 let config_path = &args[2];
