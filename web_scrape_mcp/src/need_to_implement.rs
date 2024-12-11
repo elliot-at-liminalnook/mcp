@@ -71,6 +71,94 @@ pub struct GraphManager {
 }
 
 impl GraphManager {
+    fn find_similar_nodes(&self, node_name: &str, criteria: &str, limit: usize) -> Vec<(NodeIndex, &DataNode, f64)> {
+        let source_node = match self.get_node_by_name(node_name) {
+            Some((_, node)) => node,
+            None => return Vec::new()
+        };
+
+        let mut similarities = Vec::new();
+        
+        for idx in self.graph.node_indices() {
+            if let Some(target_node) = self.graph.node_weight(idx) {
+                if target_node.name == node_name {
+                    continue;
+                }
+
+                let similarity_score = match criteria {
+                    "tags" => {
+                        // Calculate Jaccard similarity between tag sets
+                        let source_tags: std::collections::HashSet<_> = source_node.tags.iter().collect();
+                        let target_tags: std::collections::HashSet<_> = target_node.tags.iter().collect();
+                        let intersection = source_tags.intersection(&target_tags).count();
+                        let union = source_tags.union(&target_tags).count();
+                        if union == 0 { 0.0 } else { intersection as f64 / union as f64 }
+                    },
+                    "metadata" => {
+                        // Calculate similarity based on shared metadata keys and values
+                        let source_keys: std::collections::HashSet<_> = source_node.metadata.keys().collect();
+                        let target_keys: std::collections::HashSet<_> = target_node.metadata.keys().collect();
+                        let mut shared_value_count = 0;
+                        for key in source_keys.intersection(&target_keys) {
+                            if source_node.metadata.get(*key) == target_node.metadata.get(*key) {
+                                shared_value_count += 1;
+                            }
+                        }
+                        if source_keys.union(&target_keys).count() == 0 { 
+                            0.0 
+                        } else { 
+                            shared_value_count as f64 / source_keys.union(&target_keys).count() as f64 
+                        }
+                    },
+                    "structural" => {
+                        // Calculate similarity based on shared neighbors
+                        let source_neighbors: std::collections::HashSet<_> = self.graph.neighbors(self.get_node_by_name(node_name).unwrap().0).collect();
+                        let target_neighbors: std::collections::HashSet<_> = self.graph.neighbors(idx).collect();
+                        let intersection = source_neighbors.intersection(&target_neighbors).count();
+                        let union = source_neighbors.union(&target_neighbors).count();
+                        if union == 0 { 0.0 } else { intersection as f64 / union as f64 }
+                    },
+                    _ => 0.0
+                };
+
+                similarities.push((idx, target_node, similarity_score));
+            }
+        }
+
+        // Sort by similarity score in descending order
+        similarities.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+        similarities.truncate(limit);
+        similarities
+    }
+
+    fn shortest_path(&self, from_name: &str, to_name: &str) -> Option<(Vec<NodeIndex>, Vec<String>)> {
+        let (start_idx, _) = self.get_node_by_name(from_name)?;
+        let (end_idx, _) = self.get_node_by_name(to_name)?;
+
+        // Use petgraph's built-in shortest path algorithm
+        let path_indices = petgraph::algo::astar(
+            &self.graph,
+            start_idx,
+            |finish| finish == end_idx,
+            |e| 1, // Each edge has weight 1
+            |_| 0  // No heuristic
+        )?;
+
+        // Extract path and relationship types
+        let mut relationships = Vec::new();
+        let indices = path_indices.1;
+        
+        // Get relationship labels between consecutive nodes
+        for window in indices.windows(2) {
+            if let [current, next] = window {
+                if let Some(edge) = self.graph.find_edge(*current, *next) {
+                    relationships.push(self.graph[edge].clone());
+                }
+            }
+        }
+
+        Some((indices, relationships))
+    }
     fn node_name_exists(&self, name: &str) -> bool {
         self.graph.node_indices().any(|idx| {
             self.graph.node_weight(idx)
@@ -574,6 +662,19 @@ struct GetRecentNodesParams {
     limit: Option<usize>
 }
 
+#[derive(Deserialize)]
+struct FindSimilarNodesParams {
+    node_name: String,
+    similarity_criteria: Option<String>, // "tags" | "metadata" | "structural"
+    limit: Option<usize>
+}
+
+#[derive(Deserialize)]
+struct ShortestPathParams {
+    from_node_name: String,
+    to_node_name: String
+}
+
 
 // Create a function to build the tool information
 pub fn graph_tool_info() -> ToolInfo {
@@ -586,7 +687,7 @@ pub fn graph_tool_info() -> ToolInfo {
                 "action": {
                     "type": "string",
                     "description": "The action to perform.",
-                    "enum": ["create_root", "create_node", "update_node", "delete_node", "move_node", "connect_nodes", "get_node", "get_children", "get_nodes_by_tag", "search_nodes", "get_most_connected", "get_top_tags", "get_recent_nodes", "get_tags_by_date"]
+                    "enum": ["create_root", "create_node", "update_node", "delete_node", "move_node", "connect_nodes", "get_node", "get_children", "get_nodes_by_tag", "search_nodes", "get_most_connected", "get_top_tags", "get_recent_nodes", "get_tags_by_date", "find_similar_nodes", "shortest_path"]
                 },
                 "params": {
                     "type": "object",
@@ -670,6 +771,26 @@ pub fn graph_tool_info() -> ToolInfo {
                                 "query": {"type": "string"}
                             },
                             "required": ["query"]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "node_name": {"type": "string"},
+                                "similarity_criteria": {
+                                    "type": "string",
+                                    "enum": ["tags", "metadata", "structural"]
+                                },
+                                "limit": {"type": "integer", "minimum": 1}
+                            },
+                            "required": ["node_name"]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "from_node_name": {"type": "string"},
+                                "to_node_name": {"type": "string"}
+                            },
+                            "required": ["from_node_name", "to_node_name"]
                         }
                     ]
                 }
@@ -1204,6 +1325,46 @@ pub async fn handle_graph_tool_call(
             };
             Ok(success_response(id, serde_json::to_value(tool_res)?))
         }
+        "shortest_path" => {
+            let path_params: ShortestPathParams = match serde_json::from_value(action_params.clone()) {
+                Ok(p) => p,
+                Err(e) => return_error!(format!("Invalid shortest_path parameters: {}", e))
+            };
+
+            match graph_manager.shortest_path(&path_params.from_node_name, &path_params.to_node_name) {
+                Some((indices, relationships)) => {
+                    let path_info: Vec<_> = indices.iter().zip(relationships.iter().chain(std::iter::once(&String::new())))
+                        .map(|(idx, rel)| {
+                            let node = graph_manager.get_node(*idx).unwrap();
+                            json!({
+                                "node": {
+                                    "name": node.name,
+                                    "description": node.description
+                                },
+                                "relation": rel
+                            })
+                        }).collect();
+
+                    let tool_res = CallToolResult {
+                        content: vec![ToolResponseContent {
+                            type_: "text".into(),
+                            text: json!(path_info).to_string(),
+                            annotations: None,
+                        }],
+                        is_error: Some(false),
+                        _meta: None,
+                        progress: None,
+                        total: None
+                    };
+                    Ok(success_response(id, serde_json::to_value(tool_res)?))
+                },
+                None => return_error!(format!(
+                    "No path found between '{}' and '{}'",
+                    path_params.from_node_name,
+                    path_params.to_node_name
+                ))
+            }
+        },
         _ => return_error!(format!("Invalid action '{}'. Supported actions: create_root, create_node, update_node, delete_node, connect_nodes, get_node, get_children, get_nodes_by_tag, search_nodes, get_most_connected, get_top_tags, get_recent_nodes, get_tags_by_date", action))
     }
 }
