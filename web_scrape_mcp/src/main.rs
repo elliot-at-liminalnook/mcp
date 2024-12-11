@@ -1,7 +1,7 @@
-mod need_to_implement;
+mod graph_database;
 mod git_integration;
 mod regex_replace;
-use need_to_implement::{GraphManager, handle_graph_tool_call, graph_tool_info};
+use graph_database::{GraphManager, handle_graph_tool_call, graph_tool_info};
 use regex_replace::{handle_regex_replace_tool_call, regex_replace_tool_info};
 use git_integration::{handle_git_tool_call, git_tool_info};
 
@@ -85,8 +85,8 @@ async fn main() {
     let _ = std::env::var("BRAVE_API_KEY").expect("BRAVE_API_KEY environment variable must be set");
     
     let _ = std::env::var("KNOWLEDGE_GRAPH_DIR").unwrap_or_else(|_| {
-        println!("KNOWLEDGE_GRAPH_DIR not set, using default: {}", need_to_implement::DEFAULT_GRAPH_DIR);
-        need_to_implement::DEFAULT_GRAPH_DIR.to_string()
+        println!("KNOWLEDGE_GRAPH_DIR not set, using default: {}", graph_database::DEFAULT_GRAPH_DIR);
+        graph_database::DEFAULT_GRAPH_DIR.to_string()
     });
 
     let state = Arc::new(Mutex::new(MCPServerState {
