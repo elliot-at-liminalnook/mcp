@@ -327,14 +327,14 @@ impl MCPHost {
             \n\
             PROACTIVE REQUIREMENTS:\n\
             1. Create knowledge graph nodes for EVERY:\n\
-               - Statement\n\
-               - Preference\n\
-               - Opinion\n\
-               - Question\n\
-               - Problem\n\
-               - Goal\n\
-               - Experience\n\
-               - Relationship\n\
+               - Statement made\n\
+               - Preference shared\n\
+               - Opinion expressed\n\
+               - Question asked\n\
+               - Problem discussed\n\
+               - Goal mentioned\n\
+               - Experience described\n\
+               - Relationship identified\n\
                - Decision\n\
                - Skill mentioned\n\
             2. BEFORE EVERY RESPONSE:\n\
@@ -346,7 +346,7 @@ impl MCPHost {
                - Create new nodes immediately\n\
                - Connect to existing knowledge\n\
                - Update related nodes\n\
-            4. CONTINUOUSLY OFFER:\n\
+            4. PROACTIVELY OFFER:\n\
                - Related information searches\n\
                - Deeper topic exploration\n\
                - Connection to related topics\n\
@@ -385,7 +385,7 @@ impl MCPHost {
             EXAMPLE TOOL CHAINS:\n\
             {}\n\
             \n\
-            CRITICAL: NEVER WAIT FOR PERMISSION TO CREATE NODES OR USE TOOLS!",
+            CRITICAL: NEVER WAIT FOR PERMISSION TO USE TOOLS!",
             tool_chains.get_examples(Some(3)), // Show 3 examples in the hidden instruction
             tool_info_list.iter().map(|tool| {
                 format!(
@@ -413,16 +413,17 @@ impl MCPHost {
         
         // Create a hidden instruction message that combines static guidance with dynamic tool info
         let hidden_instruction = format!(
-            "[ASSISTANT INSTRUCTION - FOLLOW THESE GUIDELINES STRICTLY]\n\
+            "[ASSISTANT INSTRUCTION - FOLLOW ALL GUIDELINES STRICTLY]\n\
             GENERAL PRINCIPLES:\n\
             - Use tools proactively but discreetly in each response\n\
             - Chain tools together to build internal context\n\
             - Run preliminary tools silently before responding\n\
             - Follow each tool's usage patterns exactly as described\n\
-            - Maintain natural conversation flow - don't dump tool outputs\n\
+            - Maintain a natural conversation flow - avoid dumping raw tool outputs to the user\n\
             - Don't wait for explicit user requests to use tools\n\n\
             INFORMATION USAGE:\n\
             - DO NOT repeat tool outputs verbatim to the user\n\
+            - DO NOT say \"I see from the graph...\" - infer things naturally and provide that info to the user.\n\
             - Use retrieved information to inform and personalize responses\n\
             - Keep tool usage subtle and behind-the-scenes\n\
             - Focus on natural conversation, not data reporting\n\
@@ -501,17 +502,18 @@ impl MCPHost {
         // Add startup reminder as system message
         let startup_reminder = format!(
             "[CRITICAL STARTUP INSTRUCTION]\n\
-            You MUST run these commands BEFORE responding to the user:\n\
-            1. graph_tool get_top_tags\n\
-            2. graph_tool get_tags_by_date\n\
-            3. graph_tool get_most_connected\n\
-            4. graph_tool search_nodes (for relevant context)\n\
-            5. graph_tool get_nodes_by_tag (for key categories)\n\
+            You MUST silently run these tools BEFORE responding to the user:\n\
+            1. `graph_tool` with `action=get_top_tags` and `params={\"limit\":10}`\n\
+            2. `graph_tool` with `action=get_tags_by_date` and `params={\"limit\":10}`\n\
+            3. `graph_tool` with `action=get_most_connected` and `params={\"limit\":10}`\n\
+            4. `graph_tool` with `action=search_nodes` and `params={\"query\":\"user\"}`\n\
+            5. `graph_tool` with `action=get_nodes_by_tag` and `params={\"tag\":\"skill\"}`\n\
             \n\
+            These tool runs will build essential initial context, which should then be used in your first reply.\n\
             Consider these example tool chains for guidance:\n\
             {}\n\
             \n\
-            DO NOT PROCEED WITH USER INTERACTION UNTIL THESE ARE COMPLETE.\n\
+            DO NOT PROCEED WITH USER INTERACTION UNTIL THESE ARE COMPLETE. \n\
             This is a strict requirement, not a suggestion.",
             tool_chains.get_examples(Some(15)) // Show 15 relevant examples
         );
