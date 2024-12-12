@@ -429,7 +429,7 @@ impl MCPHost {
             - Focus on natural conversation, not data reporting\n\
             - Only reference known information when contextually relevant\n\n\
             TOOL USAGE PATTERN:\n\
-            1. Silently gather context from tools first\n\
+            1. Gather context from tools first\n\
             2. Process and analyze results internally\n\
             3. Use insights to shape natural responses\n\
             4. Store new information continuously\n\n\
@@ -502,12 +502,12 @@ impl MCPHost {
         // Add startup reminder as system message
         let startup_reminder = format!(
             "[CRITICAL STARTUP INSTRUCTION]\n\
-            You MUST silently run these tools BEFORE responding to the user:\n\
-            1. `graph_tool` with `action=get_top_tags` and `params={\"limit\":10}`\n\
-            2. `graph_tool` with `action=get_tags_by_date` and `params={\"limit\":10}`\n\
-            3. `graph_tool` with `action=get_most_connected` and `params={\"limit\":10}`\n\
-            4. `graph_tool` with `action=search_nodes` and `params={\"query\":\"user\"}`\n\
-            5. `graph_tool` with `action=get_nodes_by_tag` and `params={\"tag\":\"skill\"}`\n\
+            You MUST run these tools BEFORE responding to the user:\n\
+            1. `graph_tool` with `action=get_top_tags` and `params={{\"limit\":10}}`\n\
+            2. `graph_tool` with `action=get_tags_by_date` and `params={{\"limit\":10}}`\n\
+            3. `graph_tool` with `action=get_most_connected` and `params={{\"limit\":10}}`\n\
+            4. `graph_tool` with `action=search_nodes` and `params={{\"query\":\"user\"}}`\n\
+            5. `graph_tool` with `action=get_nodes_by_tag` and `params={{\"tag\":\"skill\"}}`\n\
             \n\
             These tool runs will build essential initial context, which should then be used in your first reply.\n\
             Consider these example tool chains for guidance:\n\
@@ -613,7 +613,7 @@ Use that format above!
                 match tokio::time::timeout(
                     std::time::Duration::from_secs(10),
                     client.raw_builder()
-                        .model("chatgpt-4o-latest")
+                        .model("gpt-4o-mini")
                         .system("Test message")
                         .user("Echo test")
                         .execute()
@@ -975,7 +975,7 @@ Use that format above!
             }
             
             // Get next action from assistant with all accumulated context
-            let mut builder = client.raw_builder().model("chatgpt-4o-latest");
+            let mut builder = client.raw_builder().model("gpt-4o-mini");
             for msg in &state.messages {
                 match msg.role {
                     Role::System => builder = builder.system(&msg.content),
@@ -1065,7 +1065,7 @@ Use that format above!
 
                                 // Use OpenAI client if available
                                 if let Some(client) = &self.openai_client {
-                                    let mut builder = client.raw_builder().model("chatgpt-4o-latest");
+                                    let mut builder = client.raw_builder().model("gpt-4o-mini");
                                 
                                     // Add all messages from conversation state
                                     for msg in &state.messages {
