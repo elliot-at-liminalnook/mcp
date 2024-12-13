@@ -128,159 +128,47 @@ pub async fn handle_git_tool_call(params: CallToolParams, id: Option<Value>) -> 
     Ok(success_response(id, serde_json::to_value(tool_res)?))
 }
 
-/// Return the ToolInfo definition for the git tool.
-pub fn graph_tool_info() -> shared_protocol_objects::ToolInfo {
-    shared_protocol_objects::ToolInfo {
-        name: "graph_tool".into(),
-        description: Some(
-            "PROACTIVE USAGE INSTRUCTIONS:\n\
-            1. CONTINUOUSLY RECORD USER INFORMATION during conversations without explicit commands\n\
-            2. CREATE NODES for any revealed:\n\
-               - Personal details\n\
-               - Preferences\n\
-               - Experiences\n\
-               - Opinions\n\
-               - Goals\n\
-               - Problems\n\
-               - Relationships\n\
-            3. UPDATE EXISTING NODES when new information emerges\n\
-            4. CONNECT RELATED INFORMATION as it's discovered\n\n\
-            ALWAYS RUN get_top_tags, get_tags_by_date, and get_most_connected NEAR THE START OF YOUR CHATS WITH THE USER AND KEEP THE GRAPH UP TO DATE AS BEST AS YOU CAN. THIS IS VERY IMPORTANT.\n\
-            BEFORE ASKING THE USER QUESTIONS, SEARCH THE GRAPH USING search_nodes AND get_nodes_by_tag TO DISCOVER WHAT YOU ALREADY KNOW ABOUT THEM!\n\n\
-            Core Functions:\n\
-            - Track relationships and connections\n\
-            - Record preferences and interests\n\
-            - Log life events and milestones\n\
-            - Document work and projects\n\
-            - Monitor goals and progress\n\
-            - Build interaction history\n\
-            - Map skill development\n\
-            - Note behavioral patterns\n\
-            - Store decision history\n\
-            - Record communication preferences\n\
-            - Track problem-solving approaches\n\
-            - Map professional networks\n\
-            - Document tools and workflows\n\
-            - Store scheduling patterns\n\
-            - Track information sources\n\
-            - Log important dates\n\
-            - Monitor routines\n\n\
-            USAGE PATTERN:\n\
-            1. START CONVERSATIONS by checking existing knowledge\n\
-            2. LISTEN ACTIVELY for new information\n\
-            3. STORE INFORMATION IMMEDIATELY as it's shared\n\
-            4. CONNECT new information to existing knowledge\n\
-            5. USE stored information to personalize responses\n\n\
-            SEARCH STRATEGY:\n\
-            1. Use search_nodes with relevant keywords\n\
-            2. Use get_nodes_by_tag for categorized info\n\
-            3. Use get_children to explore connections\n\
-            4. Use get_most_connected and get_top_tags for patterns\n\n\
-            REMEMBER: Don't wait for commands - actively maintain the user's knowledge graph during natural conversation."
-        .into()),
-        input_schema: json!({
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string",
-                    "enum": ["create_root", "create_node", "update_node", "delete_node", "move_node", "connect_nodes", "get_node", "get_children", "get_nodes_by_tag", "search_nodes", "get_most_connected", "get_top_tags", "get_recent_nodes", "get_tags_by_date"],
-                    "description": "The action to perform on the graph"
-                },
-                "params": {
-                    "type": "object",
-                    "description": "Parameters for the action.",
-                    "oneOf": [
-                        {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "description": {"type": "string"},
-                                "content": {"type": "string"},
-                                "parent_name": {"type": "string"},
-                                "relation": {"type": "string"},
-                                "tags": {"type": "array", "items": {"type": "string"}},
-                                "metadata": {"type": "object", "additionalProperties": {"type": "string"}}
-                            },
-                            "required": ["name", "description", "content"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "node_name": {"type": "string"},
-                                "new_name": {"type": "string"},
-                                "new_description": {"type": "string"},
-                                "new_content": {"type": "string"},
-                                "new_tags": {"type": "array", "items": {"type": "string"}},
-                                "new_metadata": {"type": "object", "additionalProperties": {"type": "string"}}
-                            },
-                            "required": ["node_name"]
-                        },
-                        {
-                            "type": "object",
-                            "title": "MoveNodeParams",
-                            "properties": {
-                                "node_name": { "type": "string", "description": "Name of the node to move" },
-                                "new_parent_name": { "type": "string", "description": "Name of the new parent node" },
-                                "new_relation": { "type": "string", "description": "New relationship type to the parent" }
-                            },
-                            "required": ["node_name", "new_parent_name", "new_relation"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "node_name": {"type": "string"}
-                            },
-                            "required": ["node_name"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "from_node_name": {"type": "string"},
-                                "to_node_name": {"type": "string"},
-                                "relation": {"type": "string"}
-                            },
-                            "required": ["from_node_name", "to_node_name", "relation"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "node_name": {"type": "string"}
-                            },
-                            "required": ["node_name"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "parent_node_name": {"type": "string"}
-                            },
-                            "required": ["parent_node_name"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "tag": {"type": "string"}
-                            },
-                            "required": ["tag"]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "query": {"type": "string"}
-                            },
-                            "required": ["query"]
-                        }
-                    ]
-                }
-            },
-            "required": ["action", "params"]
-        }),
-    }
-}
 
 pub fn git_tool_info() -> shared_protocol_objects::ToolInfo {
     shared_protocol_objects::ToolInfo {
         name: "git".to_string(),
-        description: Some("Interact with a Git repository. Supports init_repo, add_files, commit_changes, undo_last_commit, get_status, get_log, push_changes.".to_string()),
+        description: Some(
+            "Interacts with a Git repository. Supports essential Git operations.
+
+             **When to Use:**
+            - When you need to manage the state of a project or file using Git.
+            - When you need to stage, commit, push changes to a repository.
+            - To view the current status of files, commits or branches.
+
+             **Actions:**
+            - `init_repo`: Initializes a Git repository in the specified directory.
+                -  params: `repo_path` (the location for the new repo), optional, default is './repo'
+            - `add_files`: Stages specified files to be included in the next commit.
+                - params: `files` (an array of file paths).
+            - `commit_changes`: Commits the staged changes with a provided message.
+                - params: `message` (the commit message).
+            - `undo_last_commit`: Undoes the most recent commit, but preserves working directory changes.
+               - params: None.
+            - `get_status`: Retrieves the current status of the repository.
+               - params: None.
+            - `get_log`: Retrieves a history of the commits in the repository.
+               - params: `max_count` (optional, the number of recent commits, default is 5).
+            - `push_changes`: Pushes all committed changes to the specified remote and branch.
+               -  params: `remote` (optional, the target remote, default is 'origin') and `branch` (optional, the target branch, default is 'main').
+
+            **Output:**
+            - The output includes messages that describe the execution of the provided action.
+            - It will show error messages, if the action was not successful.
+            -  It includes the git log, or the current status of tracked or untracked files.
+
+            **Usage Constraints:**
+            - All paths are relative to the running environment.
+            - Always make sure the repo_path is correct.
+            - Always check the status and log after running any git action.
+            - Do not push if the code is not fully tested and reviewed.
+            - Do not use if you are unsure about the git command that will be performed.
+           ".to_string()
+        ),
         input_schema: json!({
             "type": "object",
             "properties": {
