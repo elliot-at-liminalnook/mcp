@@ -17,14 +17,14 @@ use tokio_stream::wrappers::LinesStream;
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{self, EnvFilter};
 use tracing_appender;
-use web_scrape_mcp::bash::{bash_tool_info, BashExecutor, BashParams};
-use web_scrape_mcp::brave_search::{search_tool_info, BraveSearchClient};
-use web_scrape_mcp::git_integration::{git_tool_info, handle_git_tool_call};
-use web_scrape_mcp::{graph_database, memory, sequential_thinking, task_planning};
-use web_scrape_mcp::graph_database::{graph_tool_info, handle_graph_tool_call, GraphManager};
-use web_scrape_mcp::process_html::extract_text_from_html;
-use web_scrape_mcp::regex_replace::{handle_regex_replace_tool_call, regex_replace_tool_info};
-use web_scrape_mcp::scraping_bee::{scraping_tool_info, ScrapingBeeClient, ScrapingBeeResponse};
+use mcp_tools::bash::{bash_tool_info, BashExecutor, BashParams};
+use mcp_tools::brave_search::{search_tool_info, BraveSearchClient};
+use mcp_tools::git_integration::{git_tool_info, handle_git_tool_call};
+use mcp_tools::{graph_database, memory, sequential_thinking, task_planning};
+use mcp_tools::graph_database::{graph_tool_info, handle_graph_tool_call, GraphManager};
+use mcp_tools::process_html::extract_text_from_html;
+use mcp_tools::regex_replace::{handle_regex_replace_tool_call, regex_replace_tool_info};
+use mcp_tools::scraping_bee::{scraping_tool_info, ScrapingBeeClient, ScrapingBeeResponse};
 
 #[tokio::main]
 async fn main() {
@@ -46,7 +46,7 @@ async fn main() {
         .with_env_filter(
             EnvFilter::from_default_env()
                 .add_directive(Level::DEBUG.into())
-                .add_directive("web_scrape_mcp=debug".parse().unwrap())
+                .add_directive("mcp_tools=debug".parse().unwrap())
         )
         .with_writer(non_blocking)
         .with_thread_ids(true)
